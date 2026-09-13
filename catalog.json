@@ -1,0 +1,23 @@
+[
+  {
+    "nombre": "Producto Ejemplo A",
+    "precio": 15000,
+    "moneda": "ARS",
+    "descripcion": "Descripcion corta del producto, beneficios clave y para quien es.",
+    "stock": true
+  },
+  {
+    "nombre": "Producto Ejemplo B",
+    "precio": 25000,
+    "moneda": "ARS",
+    "descripcion": "Descripcion corta del producto, beneficios clave y para quien es.",
+    "stock": true
+  },
+  {
+    "nombre": "Servicio Ejemplo C",
+    "precio": 40000,
+    "moneda": "ARS",
+    "descripcion": "Descripcion del servicio, que incluye, duracion, entregables.",
+    "stock": true
+  }
+]

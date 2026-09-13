@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Panel del Vendedor IA</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1e222b;
+    --border: #2a2f3a;
+    --text: #e8eaed;
+    --text-dim: #8b93a1;
+    --green: #3ecf8e;
+    --amber: #f5a623;
+    --red: #ef5b5b;
+    --blue: #5b9dee;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+  }
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  header h1 { font-size: 20px; margin: 0; font-weight: 600; }
+  header .subt { color: var(--text-dim); font-size: 13px; }
+  .estado-conexion {
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .dot.off { background: var(--red); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .stat-card .valor { font-size: 26px; font-weight: 700; }
+  .stat-card .label { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  @media (min-width: 980px) {
+    .grid { grid-template-columns: 1.3fr 1fr; }
+  }
+
+  section.panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  section.panel h2 {
+    font-size: 14px;
+    margin: 0;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  section.panel h2 .contador {
+    background: var(--panel-2);
+    color: var(--text-dim);
+    border-radius: 999px;
+    padding: 2px 9px;
+    font-size: 11px;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-dim); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+  tr:last-child td { border-bottom: none; }
+  td.numero { font-variant-numeric: tabular-nums; color: var(--text-dim); }
+  td.fecha { color: var(--text-dim); white-space: nowrap; font-size: 12px; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge.pendiente { background: rgba(245,166,35,0.15); color: var(--amber); }
+  .badge.entregado, .badge.atendido { background: rgba(62,207,142,0.15); color: var(--green); }
+  .badge.cancelado { background: rgba(239,91,91,0.15); color: var(--red); }
+
+  select.estado-select {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 12px;
+  }
+
+  .vacio {
+    padding: 28px 16px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  .conv-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .conv-item:last-child { border-bottom: none; }
+  .conv-top { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+  .conv-msg { font-size: 13px; color: var(--text); }
+  .etapa-pill {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--blue);
+    background: rgba(91,157,238,0.12);
+    padding: 2px 7px;
+    border-radius: 999px;
+  }
+
+  .conv-item { cursor: pointer; transition: background 0.1s; }
+  .conv-item:hover { background: var(--panel-2); }
+
+  .modal-fondo {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 20px;
+  }
+  .modal-fondo.abierto { display: flex; }
+  .modal-caja {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 560px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-header .cerrar {
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 18px;
+    line-height: 1;
+    background: none;
+    border: none;
+  }
+  .modal-body { overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .burbuja {
+    max-width: 78%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+  }
+  .burbuja.user {
+    align-self: flex-end;
+    background: var(--blue);
+    color: #0f1115;
+    border-bottom-right-radius: 3px;
+  }
+  .burbuja.assistant {
+    align-self: flex-start;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 3px;
+  }
+
+  .banner-licencia {
+    display: none;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    font-size: 13px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .banner-licencia.mostrar { display: flex; }
+  .banner-licencia.aviso { background: rgba(245,166,35,0.12); border: 1px solid rgba(245,166,35,0.3); color: var(--amber); }
+  .banner-licencia.vencida { background: rgba(239,91,91,0.12); border: 1px solid rgba(239,91,91,0.3); color: var(--red); }
+  .banner-licencia strong { font-weight: 700; }
+
+  .control-agente {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 20px;
+  }
+  .estado-agente { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; }
+  .dot.transicion { background: var(--amber); }
+  .botones-agente { display: flex; gap: 8px; flex-wrap: wrap; }
+  .botones-agente button {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .botones-agente button:hover { background: var(--border); }
+  .botones-agente button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-detener:hover { border-color: var(--red); color: var(--red); }
+  .btn-reiniciar:hover { border-color: var(--amber); color: var(--amber); }
+  .btn-iniciar:hover { border-color: var(--green); color: var(--green); }
+
+  .logs-panel {
+    display: none;
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .logs-panel.abierto { display: block; }
+  .logs-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .logs-contenido {
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 12px 16px;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: #9fe6a0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Panel del Vendedor IA</h1>
+    <div class="subt" id="nombreNegocio">Cargando...</div>
+  </div>
+  <div class="estado-conexion"><span class="dot" id="dotEstado"></span><span id="textoEstado">conectando...</span></div>
+</header>
+
+<div class="banner-licencia" id="bannerLicencia"></div>
+
+<div class="control-agente">
+  <div class="estado-agente">
+    <span class="dot" id="dotAgente"></span>
+    <span id="textoEstadoAgente">Agente: cargando...</span>
+  </div>
+  <div class="botones-agente">
+    <button class="btn-iniciar" id="btnIniciar" onclick="controlarAgente('iniciar')">▶️ Iniciar</button>
+    <button class="btn-reiniciar" id="btnReiniciar" onclick="controlarAgente('reiniciar')">🔄 Reiniciar</button>
+    <button class="btn-detener" id="btnDetener" onclick="controlarAgente('detener')">⏹️ Detener</button>
+    <button id="btnLogs" onclick="toggleLogs()">📋 Ver logs</button>
+  </div>
+</div>
+
+<div class="logs-panel" id="logsPanel">
+  <div class="logs-header">Logs del agente (en vivo)</div>
+  <pre class="logs-contenido" id="logsContenido"></pre>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="grid">
+  <div style="display:flex; flex-direction:column; gap:20px;">
+    <section class="panel">
+      <h2>Pedidos <span class="contador" id="contadorPedidos">0</span></h2>
+      <div id="tablaPedidos"></div>
+    </section>
+    <section class="panel" id="seccionCitas" style="display:none;">
+      <h2>Agenda de citas <span class="contador" id="contadorCitas">0</span></h2>
+      <div id="tablaCitas"></div>
+    </section>
+    <section class="panel">
+      <h2>Derivados a humano <span class="contador" id="contadorEscalamientos">0</span></h2>
+      <div id="tablaEscalamientos"></div>
+    </section>
+  </div>
+  <section class="panel">
+    <h2>Conversaciones <span class="contador" id="contadorConversaciones">0</span></h2>
+    <div id="listaConversaciones"></div>
+  </section>
+</div>
+
+<div class="modal-fondo" id="modalConversacion">
+  <div class="modal-caja">
+    <div class="modal-header">
+      <strong id="modalTitulo">Conversación</strong>
+      <button class="cerrar" onclick="cerrarModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const fmtFecha = (ts) => new Date(ts).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+async function cargar() {
+  try {
+    const res = await fetch('/api/resumen');
+    if (!res.ok) throw new Error('respuesta no ok');
+    const data = await res.json();
+    render(data);
+    document.getElementById('dotEstado').classList.remove('off');
+    document.getElementById('textoEstado').textContent = 'actualizado ' + new Date().toLocaleTimeString('es-AR');
+  } catch (err) {
+    document.getElementById('dotEstado').classList.add('off');
+    document.getElementById('textoEstado').textContent = 'sin conexion con el panel';
+  }
+}
+
+function render(data) {
+  document.getElementById('nombreNegocio').textContent = data.negocioNombre || 'Negocio';
+
+  actualizarEstadoAgente(data.agente);
+
+  const banner = document.getElementById('bannerLicencia');
+  const lic = data.licencia;
+  if (lic && !lic.activada && lic.vencida) {
+    banner.className = 'banner-licencia mostrar vencida';
+    banner.innerHTML = '<span>⛔ <strong>Periodo de prueba vencido.</strong> El bot dejo de responder a los clientes por WhatsApp hasta activar el plan pago.</span>';
+  } else if (lic && !lic.activada && lic.diasRestantes <= 3) {
+    banner.className = 'banner-licencia mostrar aviso';
+    banner.innerHTML = `<span>⏳ Quedan <strong>${lic.diasRestantes} dia(s)</strong> de prueba antes de que el bot deje de responder.</span>`;
+  } else {
+    banner.className = 'banner-licencia';
+    banner.innerHTML = '';
+  }
+
+  const s = data.stats;
+  const statsHtml = [
+    `<div class="stat-card"><div class="valor">${s.totalConversaciones}</div><div class="label">Conversaciones totales</div></div>`,
+    `<div class="stat-card"><div class="valor">${s.conversacionesActivas24h}</div><div class="label">Activas (24hs)</div></div>`,
+    `<div class="stat-card"><div class="valor">${s.pedidosHoy}</div><div class="label">Pedidos hoy</div></div>`,
+    `<div class="stat-card"><div class="valor">${s.totalPedidos}</div><div class="label">Pedidos totales</div></div>`,
+    `<div class="stat-card"><div class="valor">${s.escalamientosPendientes}</div><div class="label">Derivados pendientes</div></div>`
+  ];
+  if (data.agendaCitasHabilitada) {
+    statsHtml.push(`<div class="stat-card"><div class="valor">${s.citasPendientes}</div><div class="label">Citas pendientes</div></div>`);
+  }
+  document.getElementById('stats').innerHTML = statsHtml.join('');
+
+  document.getElementById('contadorPedidos').textContent = data.pedidos.length;
+  document.getElementById('contadorEscalamientos').textContent = data.escalamientos.length;
+  document.getElementById('contadorConversaciones').textContent = data.conversaciones.length;
+
+  document.getElementById('tablaPedidos').innerHTML = data.pedidos.length ? `
+    <table>
+      <thead><tr><th>Fecha</th><th>Número</th><th>Producto</th><th>Cant.</th><th>Estado</th></tr></thead>
+      <tbody>
+        ${data.pedidos.map(p => `
+          <tr>
+            <td class="fecha">${fmtFecha(p.creado_en)}</td>
+            <td class="numero">${p.numero}</td>
+            <td>${p.producto}</td>
+            <td>${p.cantidad}</td>
+            <td>
+              <select class="estado-select" onchange="cambiarEstadoPedido(${p.id}, this.value)">
+                ${['pendiente', 'entregado', 'cancelado'].map(e => `<option value="${e}" ${e === p.estado ? 'selected' : ''}>${e}</option>`).join('')}
+              </select>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  ` : '<div class="vacio">Todavía no hay pedidos registrados.</div>';
+
+  document.getElementById('tablaEscalamientos').innerHTML = data.escalamientos.length ? `
+    <table>
+      <thead><tr><th>Fecha</th><th>Número</th><th>Motivo</th><th>Estado</th></tr></thead>
+      <tbody>
+        ${data.escalamientos.map(e => `
+          <tr>
+            <td class="fecha">${fmtFecha(e.creado_en)}</td>
+            <td class="numero">${e.numero}</td>
+            <td>${e.motivo || '-'}</td>
+            <td>
+              <select class="estado-select" onchange="cambiarEstadoEscalamiento(${e.id}, this.value)">
+                ${['pendiente', 'atendido'].map(op => `<option value="${op}" ${op === e.estado ? 'selected' : ''}>${op}</option>`).join('')}
+              </select>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  ` : '<div class="vacio">Ninguna conversación se derivó a un humano.</div>';
+
+  const seccionCitas = document.getElementById('seccionCitas');
+  if (data.agendaCitasHabilitada) {
+    seccionCitas.style.display = '';
+    document.getElementById('contadorCitas').textContent = data.citas.length;
+    document.getElementById('tablaCitas').innerHTML = data.citas.length ? `
+      <table>
+        <thead><tr><th>Pedida el</th><th>Cliente</th><th>Fecha/hora pedida</th><th>Motivo</th><th>Estado</th></tr></thead>
+        <tbody>
+          ${data.citas.map(c => `
+            <tr>
+              <td class="fecha">${fmtFecha(c.creado_en)}</td>
+              <td>${(c.nombre_cliente || c.numero)}</td>
+              <td>${c.fecha_hora}</td>
+              <td>${c.motivo || '-'}</td>
+              <td>
+                <select class="estado-select" onchange="cambiarEstadoCita(${c.id}, this.value)">
+                  ${['pendiente', 'confirmada', 'cancelada'].map(e => `<option value="${e}" ${e === c.estado ? 'selected' : ''}>${e}</option>`).join('')}
+                </select>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    ` : '<div class="vacio">Todavía no hay citas pedidas.</div>';
+  } else {
+    seccionCitas.style.display = 'none';
+  }
+
+  document.getElementById('listaConversaciones').innerHTML = data.conversaciones.length ? data.conversaciones.map(c => `
+    <div class="conv-item" onclick="verConversacion('${c.numeroId}')">
+      <div class="conv-top">
+        <span>${c.numero} · ${c.cantidadMensajes} msj</span>
+        <span class="etapa-pill">${c.etapa}</span>
+      </div>
+      <div class="conv-msg">${(c.ultimoMensaje || '').replace(/</g, '&lt;')}</div>
+      <div class="conv-top" style="margin-top:4px;">${fmtFecha(c.ultimaActividad)}</div>
+    </div>
+  `).join('') : '<div class="vacio">Todavía no llegaron mensajes.</div>';
+}
+
+async function cambiarEstadoPedido(id, estado) {
+  await fetch(`/api/pedidos/${id}/estado`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ estado })
+  });
+  cargar();
+}
+
+async function cambiarEstadoEscalamiento(id, estado) {
+  await fetch(`/api/escalamientos/${id}/estado`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ estado })
+  });
+  cargar();
+}
+
+async function cambiarEstadoCita(id, estado) {
+  await fetch(`/api/citas/${id}/estado`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ estado })
+  });
+  cargar();
+}
+
+async function verConversacion(numeroId) {
+  const modal = document.getElementById('modalConversacion');
+  const body = document.getElementById('modalBody');
+  document.getElementById('modalTitulo').textContent = 'Cargando...';
+  body.innerHTML = '';
+  modal.classList.add('abierto');
+
+  try {
+    const res = await fetch(`/api/conversaciones/${numeroId}`);
+    if (!res.ok) throw new Error('no encontrada');
+    const data = await res.json();
+    document.getElementById('modalTitulo').textContent = `${data.numero} · ${data.etapa}`;
+    body.innerHTML = data.mensajes.map(m => `
+      <div class="burbuja ${m.role}">${(m.content || '').replace(/</g, '&lt;')}</div>
+    `).join('') || '<div class="vacio">Sin mensajes para mostrar.</div>';
+  } catch (err) {
+    document.getElementById('modalTitulo').textContent = 'Conversación';
+    body.innerHTML = '<div class="vacio">No se pudo cargar la conversación.</div>';
+  }
+}
+
+function cerrarModal() {
+  document.getElementById('modalConversacion').classList.remove('abierto');
+}
+document.getElementById('modalConversacion').addEventListener('click', (e) => {
+  if (e.target.id === 'modalConversacion') cerrarModal();
+});
+
+const ETIQUETAS_AGENTE = {
+  corriendo: { texto: 'Corriendo', clase: '' },
+  iniciando: { texto: 'Iniciando...', clase: 'transicion' },
+  deteniendo: { texto: 'Deteniendo...', clase: 'transicion' },
+  detenido: { texto: 'Detenido', clase: 'off' }
+};
+
+function actualizarEstadoAgente(agente) {
+  const dot = document.getElementById('dotAgente');
+  const texto = document.getElementById('textoEstadoAgente');
+  const info = (agente && ETIQUETAS_AGENTE[agente.estado]) || { texto: 'Desconocido', clase: 'off' };
+
+  dot.className = 'dot' + (info.clase ? ' ' + info.clase : '');
+  texto.textContent = 'Agente: ' + info.texto;
+
+  const corriendo = agente && agente.estado === 'corriendo';
+  const enTransicion = agente && (agente.estado === 'iniciando' || agente.estado === 'deteniendo');
+
+  document.getElementById('btnIniciar').disabled = corriendo || enTransicion;
+  document.getElementById('btnDetener').disabled = !corriendo;
+  document.getElementById('btnReiniciar').disabled = enTransicion;
+}
+
+async function controlarAgente(accion) {
+  const confirmaciones = {
+    detener: '¿Seguro que queres detener el agente? Va a dejar de responder mensajes por WhatsApp hasta que lo vuelvas a iniciar.',
+    reiniciar: '¿Reiniciar el agente ahora? Va a dejar de responder unos segundos mientras se reconecta.'
+  };
+  if (confirmaciones[accion] && !confirm(confirmaciones[accion])) return;
+
+  try {
+    await fetch(`/api/agente/${accion}`, { method: 'POST' });
+  } catch (err) {
+    // igual refrescamos el estado abajo
+  }
+  setTimeout(cargar, 800);
+}
+
+let logsAbiertos = false;
+let intervaloLogs = null;
+
+function toggleLogs() {
+  logsAbiertos = !logsAbiertos;
+  const panel = document.getElementById('logsPanel');
+  panel.classList.toggle('abierto', logsAbiertos);
+  document.getElementById('btnLogs').textContent = logsAbiertos ? '📋 Ocultar logs' : '📋 Ver logs';
+
+  if (logsAbiertos) {
+    cargarLogs();
+    intervaloLogs = setInterval(cargarLogs, 3000);
+  } else if (intervaloLogs) {
+    clearInterval(intervaloLogs);
+  }
+}
+
+async function cargarLogs() {
+  try {
+    const res = await fetch('/api/agente/logs');
+    const data = await res.json();
+    const contenedor = document.getElementById('logsContenido');
+    const alFinal = contenedor.scrollTop + contenedor.clientHeight >= contenedor.scrollHeight - 30;
+    contenedor.textContent = data.logs.length ? data.logs.join('\n') : '(sin actividad todavia)';
+    if (alFinal) contenedor.scrollTop = contenedor.scrollHeight;
+  } catch (err) {
+    // si falla, dejamos lo ultimo que se pudo cargar
+  }
+}
+
+cargar();
+setInterval(cargar, 8000);
+</script>
+
+</body>
+</html>
